@@ -1,12 +1,14 @@
-import { HealthStatus } from "@/features/health";
+import { FlagsPage } from "@/features/flags";
 import { site } from "@/lib/site";
 
 export function HomePage() {
   return (
-    <section className="space-y-4">
-      <h1 className="text-2xl font-bold">{site.name}</h1>
-      <p className="text-slate-600">{site.description}</p>
-      <HealthStatus />
-    </section>
+    <div className="space-y-8">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-bold">{site.name}</h1>
+        <p className="text-fg-muted">{site.description}</p>
+      </header>
+      <FlagsPage />
+    </div>
   );
 }
