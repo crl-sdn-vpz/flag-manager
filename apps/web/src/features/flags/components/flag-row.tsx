@@ -1,4 +1,5 @@
 import type { Flag } from "api-client";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useSetFlagEnabled } from "../api";
@@ -14,6 +15,7 @@ type FlagRowProps = { flag: Flag; announce: (message: string) => void };
 
 export function FlagRow({ flag, announce }: FlagRowProps) {
   const toggle = useSetFlagEnabled();
+  const switchRef = useRef<HTMLButtonElement>(null);
 
   const setEnabled = (enabled: boolean) =>
     toggle.mutate(
@@ -41,13 +43,21 @@ export function FlagRow({ flag, announce }: FlagRowProps) {
             <p>
               Couldn't turn {stateWord(failedEnabled)} {flag.name}.
             </p>
-            <Button variant="secondary" onClick={() => setEnabled(failedEnabled)}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                // Retry unmounts this button; move focus to the switch it retries, not <body>.
+                switchRef.current?.focus();
+                setEnabled(failedEnabled);
+              }}
+            >
               Retry
             </Button>
           </div>
         )}
       </div>
       <Switch
+        ref={switchRef}
         checked={flag.enabled}
         onCheckedChange={setEnabled}
         label={flag.name}

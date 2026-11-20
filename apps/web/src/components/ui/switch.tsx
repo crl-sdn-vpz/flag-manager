@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import { cn } from "@/lib/cn";
 
 type SwitchProps = {
@@ -7,15 +8,17 @@ type SwitchProps = {
   label: string;
   /** While true the switch keeps focus but ignores input (a request is in flight). */
   busy?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 };
 
 /**
  * A button with role="switch". State is shown by text and knob position, not colour alone.
  * Busy uses aria-disabled instead of disabled so keyboard focus is not lost mid-request.
  */
-export function Switch({ checked, onCheckedChange, label, busy = false }: SwitchProps) {
+export function Switch({ checked, onCheckedChange, label, busy = false, ref }: SwitchProps) {
   return (
     <button
+      ref={ref}
       type="button"
       role="switch"
       aria-checked={checked}

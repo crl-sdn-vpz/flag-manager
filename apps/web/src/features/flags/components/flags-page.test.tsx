@@ -70,4 +70,18 @@ describe("FlagsPage toggle", () => {
     expect(await within(row).findByText("Couldn't turn on New checkout.")).toBeInTheDocument();
     expect(toggle).toHaveAttribute("aria-checked", "false");
   });
+
+  it("keeps keyboard focus when Retry is pressed", async () => {
+    server.use(http.patch("*/api/v1/flags/:key", () => HttpResponse.error()));
+    const user = userEvent.setup();
+    renderPage();
+    const toggle = await screen.findByRole("switch", { name: "New checkout" });
+    await user.click(toggle);
+    const retry = await screen.findByRole("button", { name: "Retry" });
+
+    retry.focus();
+    await user.keyboard("{Enter}");
+
+    expect(toggle).toHaveFocus();
+  });
 });
