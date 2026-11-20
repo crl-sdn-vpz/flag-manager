@@ -111,4 +111,19 @@ describe("FlagsPage toggle", () => {
     await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "true"));
     expect(toggle).not.toHaveAttribute("aria-disabled");
   });
+
+  it("announces a repeated failure again by replacing the live region's content", async () => {
+    server.use(http.patch("*/api/v1/flags/:key", () => HttpResponse.error()));
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole("switch", { name: "New checkout" }));
+    const status = await screen.findByRole("status");
+    await waitFor(() => expect(status).toHaveTextContent("Couldn't turn on New checkout."));
+    const first = status.firstElementChild;
+
+    await user.click(await screen.findByRole("button", { name: "Retry" }));
+
+    await waitFor(() => expect(status.firstElementChild).not.toBe(first));
+    expect(status).toHaveTextContent("Couldn't turn on New checkout.");
+  });
 });
