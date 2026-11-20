@@ -1,7 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { CreateFlagRequest, Flag, FlagList } from "api-client";
+import type { CreateFlagRequest, ErrorResponse, Flag, FlagList } from "api-client";
 import { listFlagsQueryKey } from "api-client/query";
 import { delay, HttpResponse, http } from "msw";
 import { describe, expect, it } from "vitest";
@@ -79,5 +79,31 @@ describe("CreateFlagForm", () => {
     await waitFor(() => expect(queryClient.isFetching()).toBe(0));
 
     expect(screen.getByRole("switch", { name: "Beta search" })).toBeInTheDocument();
+  });
+
+  it("puts a server validation error on its field and moves focus there", async () => {
+    server.use(
+      http.post("*/api/v1/flags", () =>
+        HttpResponse.json<ErrorResponse>(
+          {
+            code: "validation_error",
+            message: "Request validation failed",
+            details: { issues: [{ path: ["name"], message: "Name is reserved" }] },
+            requestId: "r1",
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("switch", { name: "Dark mode" });
+
+    await createBetaSearch(user);
+
+    const name = screen.getByLabelText("Name");
+    expect(await screen.findByText("Name is reserved")).toBeInTheDocument();
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    expect(name).toHaveFocus();
   });
 });

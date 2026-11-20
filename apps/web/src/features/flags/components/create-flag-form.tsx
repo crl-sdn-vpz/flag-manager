@@ -4,19 +4,12 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { isErrorResponse, useCreateFlag } from "../api";
 import { type CreateFlagFormValues, createFlagFormSchema, validationIssuesSchema } from "../schema";
-import { flagRowId } from "./flag-row";
+import { focusFlagSwitch } from "./flag-row";
 import { FormField } from "./form-field";
 
 const fieldNames = ["key", "name", "description"] as const;
 const isFieldName = (value: unknown): value is (typeof fieldNames)[number] =>
   fieldNames.some((name) => name === value);
-
-/** User-initiated: scroll to the new row and focus its switch. */
-function focusFlagSwitch(key: string) {
-  const row = document.getElementById(flagRowId(key));
-  row?.scrollIntoView({ block: "center" });
-  row?.querySelector<HTMLElement>('[role="switch"]')?.focus({ preventScroll: true });
-}
 
 const inputClass =
   "block w-full rounded-md border border-line bg-surface px-3 py-2 aria-invalid:border-danger";
@@ -58,10 +51,13 @@ export function CreateFlagForm({ announce }: { announce: (message: string) => vo
             ? issues.data.filter((issue) => isFieldName(issue.path[0]))
             : [];
           if (fieldIssues.length > 0) {
-            for (const issue of fieldIssues) {
+            fieldIssues.forEach((issue, index) => {
               const field = issue.path[0];
-              if (isFieldName(field)) form.setError(field, { message: issue.message });
-            }
+              // Focus the first invalid field, as the 409 path does, so the error is noticed.
+              if (isFieldName(field)) {
+                form.setError(field, { message: issue.message }, { shouldFocus: index === 0 });
+              }
+            });
             return;
           }
           setFormError("Couldn't create the flag. Check your connection and try again.");

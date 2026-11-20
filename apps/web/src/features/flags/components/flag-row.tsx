@@ -9,7 +9,14 @@ const updatedFormat = new Intl.DateTimeFormat(undefined, {
   timeStyle: "short",
 });
 
-export const flagRowId = (key: string) => `flag-${key}`;
+const flagRowId = (key: string) => `flag-${key}`;
+
+/** User-initiated: scroll to the new row and focus its switch. */
+export function focusFlagSwitch(key: string) {
+  const row = document.getElementById(flagRowId(key));
+  row?.scrollIntoView({ block: "center" });
+  row?.querySelector<HTMLElement>('[role="switch"]')?.focus({ preventScroll: true });
+}
 
 const stateWord = (enabled: boolean) => (enabled ? "on" : "off");
 
