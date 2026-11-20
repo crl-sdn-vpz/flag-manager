@@ -6,6 +6,7 @@
   "scripts": {
     "bootstrap": "node scripts/tasks.ts bootstrap",
     "dev": "node scripts/tasks.ts dev",
+    "test": "node scripts/tasks.ts test",
     "check": "node scripts/tasks.ts check",
     "gen-client": "node scripts/tasks.ts gen-client",
     "db:migrate": "node scripts/tasks.ts db:migrate"

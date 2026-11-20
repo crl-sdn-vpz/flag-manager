@@ -1,4 +1,4 @@
-// Project tasks for people without `just`: `pnpm bootstrap | dev | check | gen-client | db:migrate`.
+// Project tasks for people without `just`: `pnpm bootstrap | dev | test | check | gen-client | db:migrate`.
 // Mirrors the justfile recipe of the same purpose; plain Node so it also runs on Windows.
 // Biome lints this file but tsc does not check it: the repo root has no tsconfig, only the packages do.
 import { spawnSync } from "node:child_process";
@@ -111,6 +111,11 @@ const tasks: Record<string, () => void> = {
     loadEnv();
     // One process tree: Ctrl+C stops both.
     run("pnpm", ["--parallel", "--filter", "api", "--filter", "web", "run", "dev"]);
+  },
+  test() {
+    loadEnv();
+    run("pnpm", ["--filter", "api", "test"]);
+    run("pnpm", ["--filter", "web", "test"]);
   },
   check() {
     loadEnv();
