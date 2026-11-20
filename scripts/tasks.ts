@@ -1,5 +1,6 @@
 // Project tasks for people without `just`: `pnpm bootstrap | dev | check | gen-client | db:migrate`.
 // Mirrors the justfile recipe of the same purpose; plain Node so it also runs on Windows.
+// Biome lints this file but tsc does not check it: the repo root has no tsconfig, only the packages do.
 import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
