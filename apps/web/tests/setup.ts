@@ -6,6 +6,9 @@ import { server } from "./msw/server";
 
 configureApiClient("http://localhost");
 
+// jsdom has no layout, so no scrollIntoView; the app calls it on user-initiated navigation.
+Element.prototype.scrollIntoView = () => {};
+
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 afterEach(() => {
   server.resetHandlers();

@@ -9,6 +9,8 @@ const updatedFormat = new Intl.DateTimeFormat(undefined, {
   timeStyle: "short",
 });
 
+export const flagRowId = (key: string) => `flag-${key}`;
+
 const stateWord = (enabled: boolean) => (enabled ? "on" : "off");
 
 type FlagRowProps = { flag: Flag; announce: (message: string) => void };
@@ -29,7 +31,10 @@ export function FlagRow({ flag, announce }: FlagRowProps) {
   const failedEnabled = toggle.isError ? toggle.variables?.body.enabled : undefined;
 
   return (
-    <li className="flex flex-wrap items-start justify-between gap-4 px-4 py-3">
+    <li
+      id={flagRowId(flag.key)}
+      className="flex flex-wrap items-start justify-between gap-4 px-4 py-3"
+    >
       <div className="min-w-0 space-y-1">
         <p className="font-medium">{flag.name}</p>
         <p className="font-mono text-sm text-fg-muted">{flag.key}</p>

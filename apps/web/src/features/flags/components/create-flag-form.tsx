@@ -4,11 +4,19 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { isErrorResponse, useCreateFlag } from "../api";
 import { type CreateFlagFormValues, createFlagFormSchema, validationIssuesSchema } from "../schema";
+import { flagRowId } from "./flag-row";
 import { FormField } from "./form-field";
 
 const fieldNames = ["key", "name", "description"] as const;
 const isFieldName = (value: unknown): value is (typeof fieldNames)[number] =>
   fieldNames.some((name) => name === value);
+
+/** User-initiated: scroll to the new row and focus its switch. */
+function focusFlagSwitch(key: string) {
+  const row = document.getElementById(flagRowId(key));
+  row?.scrollIntoView({ block: "center" });
+  row?.querySelector<HTMLElement>('[role="switch"]')?.focus({ preventScroll: true });
+}
 
 const inputClass =
   "block w-full rounded-md border border-line bg-surface px-3 py-2 aria-invalid:border-danger";
@@ -16,6 +24,7 @@ const inputClass =
 export function CreateFlagForm({ announce }: { announce: (message: string) => void }) {
   const create = useCreateFlag();
   const [formError, setFormError] = useState<string>();
+  const [createdKey, setCreatedKey] = useState<string>();
   const form = useForm<CreateFlagFormValues>({
     resolver: zodResolver(createFlagFormSchema),
     mode: "onTouched",
@@ -25,6 +34,7 @@ export function CreateFlagForm({ announce }: { announce: (message: string) => vo
 
   const onSubmit = (values: CreateFlagFormValues) => {
     setFormError(undefined);
+    setCreatedKey(undefined);
     create.mutate(
       { body: values },
       {
@@ -33,6 +43,7 @@ export function CreateFlagForm({ announce }: { announce: (message: string) => vo
           // Focus before reset: React Hook Form ignores setFocus right after reset().
           form.setFocus("key");
           form.reset();
+          setCreatedKey(flag.key);
           announce(`Flag ${flag.key} created. It is off.`);
         },
         onError: (error) => {
@@ -123,6 +134,15 @@ export function CreateFlagForm({ announce }: { announce: (message: string) => vo
       <Button type="submit" disabled={create.isPending}>
         {create.isPending ? "Creating…" : "Create flag"}
       </Button>
+      {createdKey && (
+        // Visible confirmation; screen readers already hear it via the page's live region.
+        <p className="text-sm text-accent">
+          Flag <code className="font-mono">{createdKey}</code> created. It is off.{" "}
+          <button type="button" className="underline" onClick={() => focusFlagSwitch(createdKey)}>
+            Show flag
+          </button>
+        </p>
+      )}
       <p className="text-xs text-fg-muted">New flags start off.</p>
     </form>
   );
