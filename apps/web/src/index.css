@@ -1,1 +1,50 @@
 @import "tailwindcss";
+
+/*
+ * Theme tokens: the only place colours, spacing and type are defined.
+ * Swap this block to re-theme the app; components use the Tailwind names mapped below
+ * (bg-surface, text-fg-muted, border-line, ...), never raw palette colours.
+ */
+:root {
+  --fm-bg: #f6f7f9;
+  --fm-surface: #ffffff;
+  --fm-fg: #1c2330;
+  --fm-fg-muted: #586174;
+  --fm-line: #d9dde4;
+  --fm-accent: #1f6f50;
+  --fm-accent-fg: #ffffff;
+  --fm-off: #8a93a3;
+  --fm-danger: #a8261b;
+  --fm-danger-surface: #fdecea;
+  --fm-focus: #2457c5;
+
+  --fm-space: 0.25rem;
+  --fm-radius: 0.5rem;
+  --fm-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fm-font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+@theme inline {
+  --color-bg: var(--fm-bg);
+  --color-surface: var(--fm-surface);
+  --color-fg: var(--fm-fg);
+  --color-fg-muted: var(--fm-fg-muted);
+  --color-line: var(--fm-line);
+  --color-accent: var(--fm-accent);
+  --color-accent-fg: var(--fm-accent-fg);
+  --color-off: var(--fm-off);
+  --color-danger: var(--fm-danger);
+  --color-danger-surface: var(--fm-danger-surface);
+  --color-focus: var(--fm-focus);
+
+  --spacing: var(--fm-space);
+  --radius-md: var(--fm-radius);
+  --font-sans: var(--fm-font-sans);
+  --font-mono: var(--fm-font-mono);
+}
+
+/* Focus is always visible for keyboard users, on every focusable element. */
+:focus-visible {
+  outline: 2px solid var(--fm-focus);
+  outline-offset: 2px;
+}
