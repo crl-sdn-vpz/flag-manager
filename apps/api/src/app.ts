@@ -2,7 +2,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { type RequestIdVariables, requestId } from "hono/request-id";
 import { env } from "./core/env.ts";
-import { errorBody, toErrorResponse } from "./core/errors.ts";
+import { errorBody, toErrorResponse, toLoggableError } from "./core/errors.ts";
 import { logger } from "./core/logger.ts";
 import { requestLog } from "./core/request-log.ts";
 import type { Db } from "./db/client.ts";
@@ -49,7 +49,9 @@ export function createApp(deps: AppDeps) {
   app.notFound((c) => c.json(errorBody("not_found", "Route not found", c.get("requestId")), 404));
   app.onError((error, c) => {
     const { status, body } = toErrorResponse(error, c.get("requestId"));
-    if (status >= 500) logger.error({ err: error, requestId: body.requestId }, "unhandled error");
+    if (status >= 500) {
+      logger.error({ err: toLoggableError(error), requestId: body.requestId }, "unhandled error");
+    }
     return c.json(body, status);
   });
 

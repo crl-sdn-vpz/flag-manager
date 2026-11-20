@@ -1,3 +1,4 @@
+import { DrizzleQueryError } from "drizzle-orm/errors";
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
@@ -77,4 +78,26 @@ export class FlagKeyConflictError extends DomainError {
   constructor(key: string) {
     super(`A flag with key "${key}" already exists`, { key });
   }
+}
+
+/**
+ * A log-safe summary of an unexpected error. Drizzle's query errors carry the bound
+ * parameters (user input) in `params` and in `message`, so log the SQL and the driver's
+ * reason instead, never the values.
+ */
+export function toLoggableError(error: Error): Record<string, unknown> {
+  if (error instanceof DrizzleQueryError) {
+    const cause = error.cause instanceof Error ? error.cause : undefined;
+    return {
+      name: error.name,
+      query: error.query,
+      cause: cause && { name: cause.name, message: cause.message, code: errorCode(cause) },
+      stack: cause?.stack,
+    };
+  }
+  return { name: error.name, message: error.message, stack: error.stack };
+}
+
+function errorCode(error: Error): unknown {
+  return "code" in error ? error.code : undefined;
 }
