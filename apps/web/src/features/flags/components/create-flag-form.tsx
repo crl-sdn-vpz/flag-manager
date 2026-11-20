@@ -29,9 +29,10 @@ export function CreateFlagForm({ announce }: { announce: (message: string) => vo
       { body: values },
       {
         onSuccess: (flag) => {
-          form.reset();
           // Focus stays in the form (no context change); the result is announced instead.
+          // Focus before reset: React Hook Form ignores setFocus right after reset().
           form.setFocus("key");
+          form.reset();
           announce(`Flag ${flag.key} created. It is off.`);
         },
         onError: (error) => {
