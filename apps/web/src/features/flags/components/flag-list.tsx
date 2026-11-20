@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useFlags } from "../api";
 import { FlagRow } from "./flag-row";
 
-export function FlagList() {
+export function FlagList({ announce }: { announce: (message: string) => void }) {
   const flags = useFlags();
 
   if (flags.isPending) {
@@ -36,7 +36,7 @@ export function FlagList() {
       className="divide-y divide-line rounded-md border border-line bg-surface"
     >
       {flags.data.items.map((flag) => (
-        <FlagRow key={flag.key} flag={flag} />
+        <FlagRow key={flag.key} flag={flag} announce={announce} />
       ))}
     </ul>
   );
