@@ -4,6 +4,7 @@ import { type RequestIdVariables, requestId } from "hono/request-id";
 import { env } from "./core/env.ts";
 import { errorBody, toErrorResponse } from "./core/errors.ts";
 import { logger } from "./core/logger.ts";
+import { requestLog } from "./core/request-log.ts";
 import type { Db } from "./db/client.ts";
 import { registerHealthRoutes } from "./routes/health.ts";
 
@@ -32,6 +33,7 @@ export function createApp(deps: AppDeps) {
 
   // First, so every later middleware, handler and error path can read c.get("requestId").
   app.use("*", requestId());
+  app.use("*", requestLog);
   app.use("*", cors({ origin: env.CORS_ORIGINS, credentials: true }));
   app.use("*", async (c, next) => {
     c.set("deps", resolved);
