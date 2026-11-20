@@ -3,6 +3,13 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.14.0",
+  "scripts": {
+    "bootstrap": "node scripts/tasks.ts bootstrap",
+    "dev": "node scripts/tasks.ts dev",
+    "check": "node scripts/tasks.ts check",
+    "gen-client": "node scripts/tasks.ts gen-client",
+    "db:migrate": "node scripts/tasks.ts db:migrate"
+  },
   "engines": {
     "node": ">=24"
   },

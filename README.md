@@ -4,14 +4,15 @@ A small feature flag manager: view, create and toggle flags
 
 ## Quick start
 
-Requirements: [just](https://just.systems), Node 24 + pnpm.
+Requirements: Node 24 and pnpm (`corepack enable` provides the pinned version).
 
 ```bash
-just setup   # .env, dependencies, migrations, API client, git hooks
-just dev     # API on http://localhost:8000, web on http://localhost:5173
-just check   # everything CI runs
+pnpm bootstrap   # .env from .env.example, dependencies, migrations, API client
+pnpm dev         # API on http://localhost:8000, web on http://localhost:5173
+pnpm check       # format, lint, types, tests, API client freshness (what CI runs)
 ```
 
-Run `just` to list every command.
+Other tasks: `pnpm gen-client` (regenerate the API client), `pnpm db:migrate` (apply migrations).
+The same tasks exist as [just](https://just.systems) recipes (`just setup`, `just dev`, `just check`); run `just` to list them.
 
-API docs (while `just dev` runs): OpenAPI document via `just gen-client` → `packages/api-client/openapi.json`.
+The OpenAPI document is generated into `packages/api-client/openapi.json` by `pnpm gen-client`.
