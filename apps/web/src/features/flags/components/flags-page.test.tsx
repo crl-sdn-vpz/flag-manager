@@ -1,20 +1,25 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { onlineManager, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ErrorResponse } from "api-client";
 import { delay, HttpResponse, http } from "msw";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { createQueryClient } from "@/app/query-client";
 import { server } from "../../../../tests/msw/server";
 import { FlagsPage } from "./flags-page";
 
 function renderPage() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // The app's real client, so tests exercise the settings that ship (e.g. networkMode).
   return render(
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={createQueryClient()}>
       <FlagsPage />
     </QueryClientProvider>,
   );
 }
+
+afterEach(() => {
+  onlineManager.setOnline(true);
+});
 
 describe("FlagsPage toggle", () => {
   it("moves the switch at once, rolls it back on failure and offers retry", async () => {
@@ -49,5 +54,20 @@ describe("FlagsPage toggle", () => {
     expect(toggle).toHaveAttribute("aria-checked", "false");
     expect(within(row).getByRole("button", { name: "Retry" })).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Couldn't turn on New checkout.");
+  });
+
+  it("fails and rolls back at once when the browser is offline, instead of queueing", async () => {
+    server.use(http.patch("*/api/v1/flags/:key", () => HttpResponse.error()));
+    const user = userEvent.setup();
+    renderPage();
+    const toggle = await screen.findByRole("switch", { name: "New checkout" });
+    onlineManager.setOnline(false);
+
+    await user.click(toggle);
+
+    const row = toggle.closest("li");
+    if (!row) throw new Error("switch is not inside a list item");
+    expect(await within(row).findByText("Couldn't turn on New checkout.")).toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-checked", "false");
   });
 });
