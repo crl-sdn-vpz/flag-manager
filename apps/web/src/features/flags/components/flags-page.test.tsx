@@ -1,10 +1,11 @@
 import { onlineManager, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ErrorResponse } from "api-client";
+import type { ErrorResponse, FlagList } from "api-client";
 import { delay, HttpResponse, http } from "msw";
 import { afterEach, describe, expect, it } from "vitest";
 import { createQueryClient } from "@/app/query-client";
+import { sampleFlags } from "../../../../tests/msw/handlers";
 import { server } from "../../../../tests/msw/server";
 import { FlagsPage } from "./flags-page";
 
@@ -83,5 +84,31 @@ describe("FlagsPage toggle", () => {
     await user.keyboard("{Enter}");
 
     expect(toggle).toHaveFocus();
+  });
+
+  it("re-reads the list after a failure, so the switch matches the server", async () => {
+    // The change reached the server but the response was lost (e.g. a proxy 502).
+    let serverEnabled = false;
+    server.use(
+      http.patch("*/api/v1/flags/:key", () => {
+        serverEnabled = true;
+        return new HttpResponse(null, { status: 502 });
+      }),
+      http.get("*/api/v1/flags", () =>
+        HttpResponse.json<FlagList>({
+          items: sampleFlags.map((flag) =>
+            flag.key === "new-checkout" ? { ...flag, enabled: serverEnabled } : flag,
+          ),
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    const toggle = await screen.findByRole("switch", { name: "New checkout" });
+
+    await user.click(toggle);
+
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "true"));
+    expect(toggle).not.toHaveAttribute("aria-disabled");
   });
 });

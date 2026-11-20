@@ -15,6 +15,8 @@ export function useFlags() {
  * Optimistic toggle. Only the toggled flag is patched in the cache (no list snapshot),
  * so concurrent toggles of different flags cannot overwrite each other on rollback.
  */
+const SET_FLAG_ENABLED_KEY = ["setFlagEnabled"];
+
 export function useSetFlagEnabled() {
   const queryClient = useQueryClient();
   const queryKey = listFlagsQueryKey();
@@ -26,12 +28,19 @@ export function useSetFlagEnabled() {
 
   return useMutation({
     ...setFlagEnabledMutation(),
+    mutationKey: SET_FLAG_ENABLED_KEY,
     onMutate: async ({ path, body }) => {
       await queryClient.cancelQueries({ queryKey });
       patchFlag(path.key, (flag) => ({ ...flag, enabled: body.enabled }));
     },
-    onError: (_error, { path, body }) => {
+    onError: async (_error, { path, body }) => {
       patchFlag(path.key, (flag) => ({ ...flag, enabled: !body.enabled }));
+      // The rollback is a guess: the change may have reached the server even though the
+      // response failed. Re-read the list, but only when no other toggle is in flight, so a
+      // refetch cannot overwrite another flag's optimistic state.
+      if (queryClient.isMutating({ mutationKey: SET_FLAG_ENABLED_KEY }) === 1) {
+        await queryClient.invalidateQueries({ queryKey });
+      }
     },
     onSuccess: (saved) => {
       patchFlag(saved.key, () => saved);
