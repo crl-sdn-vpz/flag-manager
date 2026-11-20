@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type App, createApp } from "../app.ts";
+import type { ErrorBody } from "../core/errors.ts";
 import { createDb } from "../db/client.ts";
 import { applyMigrations } from "../db/migrate.ts";
+import type { FlagList } from "../schemas/flags.ts";
+
+type ValidationErrorBody = ErrorBody & { details: { issues: { path: string[] }[] } };
 
 const T0 = new Date("2026-11-20T10:00:00.000Z");
 const T1 = new Date("2026-11-20T10:05:00.000Z");
@@ -35,7 +39,7 @@ const darkMode = { key: "dark-mode", name: "Dark mode", description: "Dark theme
 /** Every error body carries the request ID that is also in the response header. */
 async function expectError(response: Response, status: number, code: string) {
   expect(response.status).toBe(status);
-  const body = await response.json();
+  const body = (await response.json()) as ValidationErrorBody;
   expect(body).toMatchObject({ code, requestId: response.headers.get("X-Request-Id") });
   expect(body.requestId).toBeTruthy();
   return body;
@@ -49,8 +53,8 @@ describe("GET /api/v1/flags", () => {
     const response = await app.request("/api/v1/flags");
 
     expect(response.status).toBe(200);
-    const { items } = await response.json();
-    expect(items.map((flag: { key: string }) => flag.key)).toEqual(["alpha-flag", "zeta-flag"]);
+    const { items } = (await response.json()) as FlagList;
+    expect(items.map((flag) => flag.key)).toEqual(["alpha-flag", "zeta-flag"]);
   });
 });
 
@@ -85,7 +89,7 @@ describe("POST /api/v1/flags", () => {
     ["space", "dark mode"],
   ])("rejects a key that is %s", async (_rule, key) => {
     const body = await expectError(await create({ ...darkMode, key }), 422, "validation_error");
-    expect(body.details.issues[0].path).toEqual(["key"]);
+    expect(body.details.issues[0]?.path).toEqual(["key"]);
   });
 
   it("accepts keys at the length limits", async () => {
