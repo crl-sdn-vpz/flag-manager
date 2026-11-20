@@ -60,8 +60,8 @@ export function CreateFlagForm({ announce }: { announce: (message: string) => vo
             });
             return;
           }
+          // Shown in a role="alert" element, which screen readers announce; no live-region copy.
           setFormError("Couldn't create the flag. Check your connection and try again.");
-          announce("Couldn't create the flag.");
         },
       },
     );

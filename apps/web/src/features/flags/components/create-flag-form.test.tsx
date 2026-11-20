@@ -106,4 +106,16 @@ describe("CreateFlagForm", () => {
     expect(name).toHaveAttribute("aria-invalid", "true");
     expect(name).toHaveFocus();
   });
+
+  it("reports a failed create once, through the form's alert only", async () => {
+    server.use(http.post("*/api/v1/flags", () => HttpResponse.error()));
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("switch", { name: "Dark mode" });
+
+    await createBetaSearch(user);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't create the flag");
+    expect(screen.getByRole("status")).toHaveTextContent("");
+  });
 });
