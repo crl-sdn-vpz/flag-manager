@@ -1,6 +1,10 @@
+import type { CreateFlagRequest } from "api-client";
 import { z } from "zod";
 
 // Mirrors the API's CreateFlagRequest rules for instant feedback; the server stays authoritative.
+// `satisfies` ties the shape to the generated type: a renamed, removed or new required API field
+// is a type error here. (The rules themselves, like lengths and the key pattern, can't be checked
+// by types; the API's tests own those.)
 export const createFlagFormSchema = z.object({
   key: z
     .string()
@@ -12,7 +16,7 @@ export const createFlagFormSchema = z.object({
     ),
   name: z.string().trim().min(1, "Enter a name").max(80, "Use at most 80 characters"),
   description: z.string().trim().max(280, "Use at most 280 characters"),
-});
+}) satisfies z.ZodType<CreateFlagRequest>;
 
 export type CreateFlagFormValues = z.infer<typeof createFlagFormSchema>;
 
