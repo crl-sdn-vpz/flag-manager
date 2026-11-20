@@ -60,3 +60,21 @@ export function toErrorResponse(
   }
   return { status: 500, body: errorBody("internal_error", "Internal server error", requestId) };
 }
+
+export class FlagNotFoundError extends DomainError {
+  override readonly status = 404;
+  override readonly code = "flag_not_found";
+
+  constructor(key: string) {
+    super(`No flag with key "${key}"`, { key });
+  }
+}
+
+export class FlagKeyConflictError extends DomainError {
+  override readonly status = 409;
+  override readonly code = "flag_key_conflict";
+
+  constructor(key: string) {
+    super(`A flag with key "${key}" already exists`, { key });
+  }
+}
