@@ -46,13 +46,107 @@
           "details": {
             "type": "object",
             "additionalProperties": {}
+          },
+          "requestId": {
+            "type": "string"
           }
         },
         "required": [
           "code",
           "message",
-          "details"
+          "details",
+          "requestId"
         ]
+      },
+      "FlagList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Flag"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Flag": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+            "example": "new-checkout"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "description",
+          "enabled",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateFlagRequest": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+            "example": "new-checkout"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 280,
+            "default": ""
+          }
+        },
+        "required": [
+          "key",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "SetFlagEnabledRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "additionalProperties": false
       }
     },
     "parameters": {}
@@ -71,6 +165,165 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/flags": {
+      "get": {
+        "operationId": "list_flags",
+        "tags": [
+          "flags"
+        ],
+        "responses": {
+          "200": {
+            "description": "All flags, ordered by key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagList"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_flag",
+        "tags": [
+          "flags"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFlagRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created flag (always disabled)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Flag"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A flag with this key already exists (code flag_key_conflict)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed (code validation_error)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/flags/{key}": {
+      "patch": {
+        "operationId": "set_flag_enabled",
+        "tags": [
+          "flags"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "new-checkout"
+            },
+            "required": true,
+            "name": "key",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetFlagEnabledRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The flag in its requested state. Idempotent: repeating gives the same result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Flag"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No flag with this key (code flag_not_found)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed (code validation_error)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }

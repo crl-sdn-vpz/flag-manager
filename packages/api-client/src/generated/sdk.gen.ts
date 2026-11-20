@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetHealthData, GetHealthErrors, GetHealthResponses } from './types.gen';
+import type { CreateFlagData, CreateFlagErrors, CreateFlagResponses, GetHealthData, GetHealthErrors, GetHealthResponses, ListFlagsData, ListFlagsErrors, ListFlagsResponses, SetFlagEnabledData, SetFlagEnabledErrors, SetFlagEnabledResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,3 +19,23 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 export const getHealth = <ThrowOnError extends boolean = false>(options?: Options<GetHealthData, ThrowOnError>): RequestResult<GetHealthResponses, GetHealthErrors, ThrowOnError> => (options?.client ?? client).get<GetHealthResponses, GetHealthErrors, ThrowOnError>({ url: '/api/v1/health', ...options });
+
+export const listFlags = <ThrowOnError extends boolean = false>(options?: Options<ListFlagsData, ThrowOnError>): RequestResult<ListFlagsResponses, ListFlagsErrors, ThrowOnError> => (options?.client ?? client).get<ListFlagsResponses, ListFlagsErrors, ThrowOnError>({ url: '/api/v1/flags', ...options });
+
+export const createFlag = <ThrowOnError extends boolean = false>(options: Options<CreateFlagData, ThrowOnError>): RequestResult<CreateFlagResponses, CreateFlagErrors, ThrowOnError> => (options.client ?? client).post<CreateFlagResponses, CreateFlagErrors, ThrowOnError>({
+    url: '/api/v1/flags',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const setFlagEnabled = <ThrowOnError extends boolean = false>(options: Options<SetFlagEnabledData, ThrowOnError>): RequestResult<SetFlagEnabledResponses, SetFlagEnabledErrors, ThrowOnError> => (options.client ?? client).patch<SetFlagEnabledResponses, SetFlagEnabledErrors, ThrowOnError>({
+    url: '/api/v1/flags/{key}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});

@@ -16,6 +16,30 @@ export type ErrorResponse = {
     details: {
         [key: string]: unknown;
     };
+    requestId: string;
+};
+
+export type FlagList = {
+    items: Array<Flag>;
+};
+
+export type Flag = {
+    key: string;
+    name: string;
+    description: string;
+    enabled: boolean;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type CreateFlagRequest = {
+    key: string;
+    name: string;
+    description?: string;
+};
+
+export type SetFlagEnabledRequest = {
+    enabled: boolean;
 };
 
 export type GetHealthData = {
@@ -42,3 +66,96 @@ export type GetHealthResponses = {
 };
 
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
+
+export type ListFlagsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/flags';
+};
+
+export type ListFlagsErrors = {
+    /**
+     * Unexpected error
+     */
+    500: ErrorResponse;
+};
+
+export type ListFlagsError = ListFlagsErrors[keyof ListFlagsErrors];
+
+export type ListFlagsResponses = {
+    /**
+     * All flags, ordered by key
+     */
+    200: FlagList;
+};
+
+export type ListFlagsResponse = ListFlagsResponses[keyof ListFlagsResponses];
+
+export type CreateFlagData = {
+    body: CreateFlagRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/flags';
+};
+
+export type CreateFlagErrors = {
+    /**
+     * A flag with this key already exists (code flag_key_conflict)
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed (code validation_error)
+     */
+    422: ErrorResponse;
+    /**
+     * Unexpected error
+     */
+    500: ErrorResponse;
+};
+
+export type CreateFlagError = CreateFlagErrors[keyof CreateFlagErrors];
+
+export type CreateFlagResponses = {
+    /**
+     * The created flag (always disabled)
+     */
+    201: Flag;
+};
+
+export type CreateFlagResponse = CreateFlagResponses[keyof CreateFlagResponses];
+
+export type SetFlagEnabledData = {
+    body: SetFlagEnabledRequest;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/flags/{key}';
+};
+
+export type SetFlagEnabledErrors = {
+    /**
+     * No flag with this key (code flag_not_found)
+     */
+    404: ErrorResponse;
+    /**
+     * Request validation failed (code validation_error)
+     */
+    422: ErrorResponse;
+    /**
+     * Unexpected error
+     */
+    500: ErrorResponse;
+};
+
+export type SetFlagEnabledError = SetFlagEnabledErrors[keyof SetFlagEnabledErrors];
+
+export type SetFlagEnabledResponses = {
+    /**
+     * The flag in its requested state. Idempotent: repeating gives the same result.
+     */
+    200: Flag;
+};
+
+export type SetFlagEnabledResponse = SetFlagEnabledResponses[keyof SetFlagEnabledResponses];
