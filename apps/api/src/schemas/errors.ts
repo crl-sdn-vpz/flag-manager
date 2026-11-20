@@ -5,5 +5,6 @@ export const ErrorResponseSchema = z
     code: z.string(),
     message: z.string(),
     details: z.record(z.string(), z.unknown()),
+    requestId: z.string(),
   })
   .openapi("ErrorResponse");

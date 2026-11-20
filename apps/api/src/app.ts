@@ -1,5 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
+import { type RequestIdVariables, requestId } from "hono/request-id";
 import { env } from "./core/env.ts";
 import { errorBody, toErrorResponse } from "./core/errors.ts";
 import { logger } from "./core/logger.ts";
@@ -11,7 +12,7 @@ export type AppDeps = {
   version?: string;
 };
 
-export type AppEnv = { Variables: { deps: Required<AppDeps> } };
+export type AppEnv = { Variables: { deps: Required<AppDeps> } & RequestIdVariables };
 
 export function createApp(deps: AppDeps) {
   const resolved: Required<AppDeps> = { version: "0.1.0", ...deps };
@@ -20,7 +21,7 @@ export function createApp(deps: AppDeps) {
     defaultHook: (result, c) => {
       if (!result.success) {
         return c.json(
-          errorBody("validation_error", "Request validation failed", {
+          errorBody("validation_error", "Request validation failed", c.get("requestId"), {
             issues: result.error.issues,
           }),
           422,
@@ -29,6 +30,8 @@ export function createApp(deps: AppDeps) {
     },
   });
 
+  // First, so every later middleware, handler and error path can read c.get("requestId").
+  app.use("*", requestId());
   app.use("*", cors({ origin: env.CORS_ORIGINS, credentials: true }));
   app.use("*", async (c, next) => {
     c.set("deps", resolved);
@@ -39,10 +42,10 @@ export function createApp(deps: AppDeps) {
   registerHealthRoutes(v1);
   app.route("/api/v1", v1);
 
-  app.notFound((c) => c.json(errorBody("not_found", "Route not found"), 404));
+  app.notFound((c) => c.json(errorBody("not_found", "Route not found", c.get("requestId")), 404));
   app.onError((error, c) => {
-    const { status, body } = toErrorResponse(error);
-    if (status >= 500) logger.error({ err: error }, "unhandled error");
+    const { status, body } = toErrorResponse(error, c.get("requestId"));
+    if (status >= 500) logger.error({ err: error, requestId: body.requestId }, "unhandled error");
     return c.json(body, status);
   });
 
