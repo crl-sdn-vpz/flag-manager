@@ -14,7 +14,6 @@
     "node": ">=24"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
-    "lefthook": "2.2.2"
+    "@biomejs/biome": "2.5.15"
   }
 }

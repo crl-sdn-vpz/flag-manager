@@ -5,14 +5,13 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 default:
     @just --list --unsorted
 
-# First-time setup: env file, dependencies, database, client, git hooks
+# First-time setup: env file, dependencies, database, client
 setup:
     [ -f .env ] || cp .env.example .env
     pnpm install
     mkdir -p apps/api/data
     just db-upgrade
     just gen-client
-    pnpm exec lefthook install || echo "lefthook not installed; git hooks skipped"
 
 # Run the API and the web app together (Ctrl+C stops both)
 dev:

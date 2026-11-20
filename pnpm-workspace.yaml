@@ -6,7 +6,6 @@ packages:
 # Supply-chain guard: only resolve versions published at least 7 days ago (minutes).
 minimumReleaseAge: 10080
 
-# Dependencies allowed to run install scripts. lefthook's is unneeded: `just setup` runs `lefthook install`.
+# Dependencies allowed to run install scripts.
 allowBuilds:
-  lefthook: false
   esbuild: true # drizzle-kit's bundler; the script installs/validates its native binary
