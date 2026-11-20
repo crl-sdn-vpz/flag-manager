@@ -49,7 +49,9 @@ export function useCreateFlag() {
   const queryClient = useQueryClient();
   return useMutation({
     ...createFlagMutation(),
-    onSuccess: (created) => {
+    onSuccess: async (created) => {
+      // A list fetch already in flight would land after this write and drop the new flag.
+      await queryClient.cancelQueries({ queryKey: listFlagsQueryKey() });
       queryClient.setQueryData<FlagList>(listFlagsQueryKey(), (list) =>
         list
           ? { items: [...list.items, created].sort((a, b) => a.key.localeCompare(b.key)) }
