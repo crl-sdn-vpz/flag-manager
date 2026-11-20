@@ -6,6 +6,7 @@ import { errorBody, toErrorResponse } from "./core/errors.ts";
 import { logger } from "./core/logger.ts";
 import { requestLog } from "./core/request-log.ts";
 import type { Db } from "./db/client.ts";
+import { registerFlagRoutes } from "./routes/flags.ts";
 import { registerHealthRoutes } from "./routes/health.ts";
 
 export type AppDeps = {
@@ -42,6 +43,7 @@ export function createApp(deps: AppDeps) {
 
   const v1 = new OpenAPIHono<AppEnv>();
   registerHealthRoutes(v1);
+  registerFlagRoutes(v1);
   app.route("/api/v1", v1);
 
   app.notFound((c) => c.json(errorBody("not_found", "Route not found", c.get("requestId")), 404));
