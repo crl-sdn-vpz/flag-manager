@@ -36,19 +36,34 @@ export type FlagReaderOptions = {
   path?: string;
   /** What `get` answers for a key before the first answer, and for a key the answer lacks. */
   defaults: Readonly<Record<string, boolean>>;
-  /** Poll interval in ms. Default 5000. Doubles on errors, up to MAX_BACKOFF_MS. */
+  /**
+   * Poll interval in ms. Default 5000. Doubles on each failed read, up to 60 s; a 429 or 503
+   * with `Retry-After` (in seconds) sets the floor of the next interval, within the same cap.
+   * A read that gets no answer within `max(pollMs, 10 s)` is aborted and counts as a failure.
+   */
   pollMs?: number;
+  /**
+   * Called once each time a read settles: true for a usable answer (a snapshot, or a 304 for the
+   * one held), false for anything else (a network error, a timeout, a non-2xx answer, a 200 that
+   * is not a snapshot). Not called for a read that `refresh()` replaced or `stop()` aborted. It
+   * follows the `subscribe` listeners of the same read, so a UI can say "failed" without parsing
+   * responses itself.
+   */
+  onRead?: (ok: boolean) => void;
 };
 
 const DEFAULT_PATH = "/eval/v1/flags";
 const DEFAULT_POLL_MS = 5000;
 const MAX_BACKOFF_MS = 60_000;
+const MIN_TIMEOUT_MS = 10_000;
+const VERSION = /^[0-9a-f]{16}$/;
 
 /** Parse the 200 body; null when it is not a snapshot (a proxy's HTML page, a changed contract). */
 function parseSnapshot(body: unknown): FlagSnapshot | null {
   if (typeof body !== "object" || body === null) return null;
   const { version, flags } = body as { version?: unknown; flags?: unknown };
-  if (typeof version !== "string" || typeof flags !== "object" || flags === null) return null;
+  if (typeof version !== "string" || !VERSION.test(version)) return null;
+  if (typeof flags !== "object" || flags === null) return null;
   const states: Record<string, boolean> = {};
   for (const [key, state] of Object.entries(flags)) {
     if (typeof state !== "boolean") return null;
@@ -61,10 +76,38 @@ function documentHidden(): boolean {
   return typeof document !== "undefined" && document.visibilityState !== "visible";
 }
 
-type InFlight = { controller: AbortController; done: Promise<void> };
+type InFlight = {
+  controller: AbortController;
+  done: Promise<void>;
+  timer?: ReturnType<typeof setTimeout>;
+  timedOut: boolean;
+};
+
+type ReadOutcome = { ok: boolean; retryAfterMs?: number };
+
+/** `Retry-After` as whole seconds (the HTTP-date form is ignored), for a 429 or 503. */
+function retryAfterMs(response: Response): number | undefined {
+  if (response.status !== 429 && response.status !== 503) return undefined;
+  const value = response.headers.get("retry-after")?.trim();
+  return value && /^\d+$/.test(value) ? Number(value) * 1000 : undefined;
+}
+
+/** Rejects when the signal aborts, so a fetch that ignores its signal cannot hang a read. */
+function whenAborted(signal: AbortSignal): Promise<never> {
+  return new Promise((_, reject) => {
+    signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+  });
+}
 
 export function createFlagReader(options: FlagReaderOptions): FlagReader {
-  const { fetch: doFetch, path = DEFAULT_PATH, defaults, pollMs = DEFAULT_POLL_MS } = options;
+  const {
+    fetch: doFetch,
+    path = DEFAULT_PATH,
+    defaults,
+    pollMs = DEFAULT_POLL_MS,
+    onRead,
+  } = options;
+  const timeoutMs = Math.max(pollMs, MIN_TIMEOUT_MS);
 
   let current: FlagSnapshot | null = null;
   let running = false;
@@ -92,45 +135,59 @@ export function createFlagReader(options: FlagReaderOptions): FlagReader {
     }, interval);
   };
 
-  /** Resolves true when the answer is usable (200 with a snapshot, or 304 for the one we hold). */
-  async function read(signal: AbortSignal): Promise<boolean> {
+  async function read(signal: AbortSignal): Promise<ReadOutcome> {
     const headers: Record<string, string> = { accept: "application/json" };
     if (current) headers["if-none-match"] = `"${current.version}"`;
     const response = await doFetch(path, { method: "GET", headers, signal });
-    if (signal.aborted) return false;
-    if (response.status === 304) return current !== null;
-    if (!response.ok) return false;
+    if (signal.aborted) return { ok: false };
+    if (response.status === 304) return { ok: current !== null };
+    if (!response.ok) return { ok: false, retryAfterMs: retryAfterMs(response) };
     const next = parseSnapshot(await response.json());
-    if (signal.aborted || next === null) return false;
+    if (signal.aborted || next === null) return { ok: false };
     if (current?.version !== next.version) {
       current = next;
       notify();
     }
-    return true;
+    return { ok: true };
   }
 
   async function request(entry: InFlight): Promise<void> {
-    let ok = false;
+    const { signal } = entry.controller;
+    let outcome: ReadOutcome = { ok: false };
     try {
-      ok = await read(entry.controller.signal);
+      outcome = await Promise.race([read(signal), whenAborted(signal)]);
     } catch {
-      // A rejected fetch or a body that is not JSON: the same as any other failed read.
+      // A rejected fetch, a body that is not JSON or a timeout: a failed read.
     }
-    if (entry.controller.signal.aborted) {
+    clearTimeout(entry.timer);
+    if (inflight !== entry || (signal.aborted && !entry.timedOut)) {
       // Replaced by a newer read (wait for it) or stopped (nothing to wait for).
       await inflight?.done;
       return;
     }
-    interval = ok ? pollMs : Math.min(interval * 2, MAX_BACKOFF_MS);
+    interval = outcome.ok
+      ? pollMs
+      : Math.min(Math.max(interval * 2, outcome.retryAfterMs ?? 0), MAX_BACKOFF_MS);
     inflight = null;
+    onRead?.(outcome.ok);
     schedule();
   }
 
   function load(): Promise<void> {
     if (!running) return Promise.resolve();
     clearTimer();
+    clearTimeout(inflight?.timer);
     inflight?.controller.abort();
-    const entry: InFlight = { controller: new AbortController(), done: Promise.resolve() };
+    const entry: InFlight = {
+      controller: new AbortController(),
+      done: Promise.resolve(),
+      timedOut: false,
+    };
+    // A read that gets no answer is aborted and counted as failed, so the poll cannot stall.
+    entry.timer = setTimeout(() => {
+      entry.timedOut = true;
+      entry.controller.abort();
+    }, timeoutMs);
     inflight = entry;
     entry.done = request(entry);
     return entry.done;
@@ -138,8 +195,14 @@ export function createFlagReader(options: FlagReaderOptions): FlagReader {
 
   const onVisibilityChange = () => {
     if (!running) return;
-    if (documentHidden()) clearTimer();
-    else if (!inflight) void load();
+    if (documentHidden()) {
+      clearTimer();
+      return;
+    }
+    if (inflight) return;
+    // Backed off after failures: keep the longer interval rather than read at once.
+    if (interval > pollMs) schedule();
+    else void load();
   };
 
   return {
@@ -168,6 +231,7 @@ export function createFlagReader(options: FlagReaderOptions): FlagReader {
       if (!running) return;
       running = false;
       clearTimer();
+      clearTimeout(inflight?.timer);
       inflight?.controller.abort();
       inflight = null;
       if (typeof document !== "undefined") {
