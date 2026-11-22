@@ -101,9 +101,17 @@ export type CreateFlagData = {
 
 export type CreateFlagErrors = {
     /**
+     * The request body is not valid JSON (code http_error)
+     */
+    400: ErrorResponse;
+    /**
      * A flag with this key already exists (code flag_key_conflict)
      */
     409: ErrorResponse;
+    /**
+     * The request's Content-Type is not application/json (code http_error)
+     */
+    415: ErrorResponse;
     /**
      * Request validation failed (code validation_error)
      */
@@ -136,9 +144,17 @@ export type SetFlagEnabledData = {
 
 export type SetFlagEnabledErrors = {
     /**
+     * The request body is not valid JSON (code http_error)
+     */
+    400: ErrorResponse;
+    /**
      * No flag with this key (code flag_not_found)
      */
     404: ErrorResponse;
+    /**
+     * The request's Content-Type is not application/json (code http_error)
+     */
+    415: ErrorResponse;
     /**
      * Request validation failed (code validation_error)
      */
