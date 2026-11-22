@@ -3,6 +3,9 @@ packages:
   - apps/api
   - packages/*
 
+# Refuse installs on a Node outside package.json engines (pnpm 12 ignores engine-strict in .npmrc).
+engineStrict: true
+
 # Supply-chain guard: only resolve versions published at least 7 days ago (minutes).
 minimumReleaseAge: 10080
 
