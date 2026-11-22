@@ -20,10 +20,25 @@ export function CreateFlagForm({ announce }: { announce: (message: string) => vo
   const [createdKey, setCreatedKey] = useState<string>();
   const form = useForm<CreateFlagFormValues>({
     resolver: zodResolver(createFlagFormSchema),
-    mode: "onTouched",
+    // Validate on submit, then on change (React Hook Form's default re-validation). Blur validates
+    // only a field that has text (see `field`): an empty field that was only focused never shows a
+    // hint, so the focus returned to Key after a create can't shift the page under the next click.
+    mode: "onSubmit",
     defaultValues: { key: "", name: "", description: "" },
   });
   const { errors } = form.formState;
+
+  /** `register` plus the blur and change validation described above. */
+  const field = (name: (typeof fieldNames)[number]) =>
+    form.register(name, {
+      onBlur: () => {
+        if (form.getValues(name) !== "") void form.trigger(name);
+      },
+      onChange: () => {
+        // A shown error follows the typing and clears once the value is right, even before a submit.
+        if (errors[name]) void form.trigger(name);
+      },
+    });
 
   const onSubmit = (values: CreateFlagFormValues) => {
     setFormError(undefined);
@@ -91,7 +106,7 @@ export function CreateFlagForm({ announce }: { announce: (message: string) => vo
             spellCheck={false}
             aria-invalid={errors.key ? true : undefined}
             aria-describedby={describedBy}
-            {...form.register("key")}
+            {...field("key")}
           />
         )}
       </FormField>
@@ -102,7 +117,7 @@ export function CreateFlagForm({ announce }: { announce: (message: string) => vo
             className={inputClass}
             aria-invalid={errors.name ? true : undefined}
             aria-describedby={describedBy}
-            {...form.register("name")}
+            {...field("name")}
           />
         )}
       </FormField>
@@ -118,7 +133,7 @@ export function CreateFlagForm({ announce }: { announce: (message: string) => vo
             className={inputClass}
             aria-invalid={errors.description ? true : undefined}
             aria-describedby={describedBy}
-            {...form.register("description")}
+            {...field("description")}
           />
         )}
       </FormField>

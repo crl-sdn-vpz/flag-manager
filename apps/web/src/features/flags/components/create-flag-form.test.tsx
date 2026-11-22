@@ -61,6 +61,40 @@ describe("CreateFlagForm", () => {
     expect(screen.getByRole("switch", { name: "Beta search" })).toHaveFocus();
   });
 
+  it("returns focus to an empty Key after a create without a hint, so the next click works first time", async () => {
+    server.use(createdFlagHandler());
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("switch", { name: "Dark mode" });
+
+    await createBetaSearch(user);
+    await within(screen.getByRole("form", { name: "New flag" })).findByText(
+      /created\. It is off\./,
+    );
+    const key = screen.getByLabelText("Key");
+    expect(key).toHaveFocus();
+
+    // The press that moves focus away is also the click, on the first try.
+    await user.click(screen.getByRole("button", { name: "Show flag" }));
+
+    expect(screen.getByRole("switch", { name: "Beta search" })).toHaveFocus();
+    expect(screen.queryByText("Use at least 2 characters")).toBeNull();
+    expect(key).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("still validates a field with text when it loses focus, and clears the hint once it is right", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("switch", { name: "Dark mode" });
+
+    await user.type(screen.getByLabelText("Key"), "x");
+    await user.tab();
+    expect(await screen.findByText("Use at least 2 characters")).toBeVisible();
+
+    await user.type(screen.getByLabelText("Key"), "y");
+    await waitFor(() => expect(screen.queryByText("Use at least 2 characters")).toBeNull());
+  });
+
   it("keeps the new flag when an older list fetch finishes after the create", async () => {
     const user = userEvent.setup();
     const queryClient = renderPage();
