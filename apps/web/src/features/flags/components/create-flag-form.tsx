@@ -32,11 +32,13 @@ export function CreateFlagForm({ announce }: { announce: (message: string) => vo
   const field = (name: (typeof fieldNames)[number]) =>
     form.register(name, {
       onBlur: () => {
-        if (form.getValues(name) !== "") void form.trigger(name);
+        // Validate typed text on leave, but never overwrite an error the server set (409, 422 issues).
+        if (form.getValues(name) !== "" && !form.getFieldState(name).error) void form.trigger(name);
       },
       onChange: () => {
-        // A shown error follows the typing and clears once the value is right, even before a submit.
-        if (errors[name]) void form.trigger(name);
+        // Before a submit, a hint shown on blur follows the typing and clears once the value is right.
+        // After a submit React Hook Form re-validates on change itself.
+        if (!form.formState.isSubmitted && form.getFieldState(name).error) void form.trigger(name);
       },
     });
 
