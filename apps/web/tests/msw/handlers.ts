@@ -1,4 +1,5 @@
 import type { Flag, FlagList, HealthResponse } from "api-client";
+import type { FlagSnapshot } from "flags-sdk";
 import { HttpResponse, http } from "msw";
 
 export const sampleFlags: Flag[] = [
@@ -26,4 +27,10 @@ export const handlers = [
     HttpResponse.json<HealthResponse>({ status: "ok", version: "0.1.0", database: "ok" }),
   ),
   http.get("*/api/v1/flags", () => HttpResponse.json<FlagList>({ items: sampleFlags })),
+  http.get("*/eval/v1/flags", () =>
+    HttpResponse.json<FlagSnapshot>({
+      version: "0000000000000000",
+      flags: Object.fromEntries(sampleFlags.map((flag) => [flag.key, flag.enabled])),
+    }),
+  ),
 ];

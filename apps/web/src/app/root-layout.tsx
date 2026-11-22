@@ -7,7 +7,7 @@ export function RootLayout() {
       <header className="border-b border-line bg-surface">
         <div className="mx-auto max-w-4xl px-4 py-3 font-semibold">{site.name}</div>
       </header>
-      <main className="mx-auto max-w-4xl px-4 py-8">
+      <main className="mx-auto max-w-4xl px-4 py-8 min-[1200px]:max-w-6xl">
         <Outlet />
       </main>
     </div>
