@@ -78,7 +78,7 @@ The full contract is in `packages/api-client/openapi.json`.
 - A flag has one state for everyone. There are no separate values for development, staging or production yet.
 - A flag's key never needs to be renamed.
 - One server and one database file are enough at this size.
-- Other services don't read flags from this API yet. This is only the management side.
+- Other services read flags through one small read-only route, not through the admin API (see "What I left out").
 
 ## Decisions I made on purpose
 
@@ -95,7 +95,7 @@ The full contract is in `packages/api-client/openapi.json`.
 
 - **Login and roles.** The brief excludes them. The logs already have a place for "who did it", so adding login later won't change their format.
 - **Environments** (development, staging, production). They change the data and every screen, so they are the first thing I'd add next.
-- **A way for other services to read flags.** That is a different product: it has to be very fast and handle many reads. It shouldn't be squeezed into an admin tool's first version.
+- **A production-grade way for other services to read flags.** There is a small read-only route, `GET /eval/v1/flags`, apart from the admin API and with its own contract (`packages/flags-sdk/openapi.json`). It answers every flag's state and a version that doubles as the `ETag`, so a caller that already has the latest answer gets an empty `304`. `packages/flags-sdk` has a reader that polls it every 5 seconds (not while the tab is hidden), backs off when it fails and keeps the last good answer, and the page's shop preview is built on it. A real one would add what this leaves out: a key and limits per calling service, a cache in front, updates pushed instead of polled, and rules for who sees which state (targeting and rollouts).
 - **History and approvals.** They only make sense once there are users. The change logs are the starting point.
 - **Gradual rollouts, targeting, delete, rename, paging, Docker and deployment.** A first version should be easy to read and easy to extend, not broad.
 

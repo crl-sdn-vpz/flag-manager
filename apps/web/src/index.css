@@ -48,3 +48,11 @@
   outline: 2px solid var(--fm-focus);
   outline-offset: 2px;
 }
+
+/* The preview stays in view beside the list while it fits the window's height. */
+@media (min-width: 1200px) and (min-height: 880px) {
+  .preview-sticky {
+    position: sticky;
+    top: 1rem;
+  }
+}

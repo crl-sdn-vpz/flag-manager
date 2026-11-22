@@ -3,6 +3,8 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
+const apiTarget = process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8000";
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -11,7 +13,8 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    proxy: { "/api": process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8000" },
+    // /eval is the read-only evaluation route the preview reads (apart from the admin API's /api).
+    proxy: { "/api": apiTarget, "/eval": apiTarget },
   },
   test: {
     environment: "jsdom",

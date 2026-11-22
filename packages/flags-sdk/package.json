@@ -1,0 +1,17 @@
+{
+  "name": "flags-sdk",
+  "private": true,
+  "type": "module",
+  "description": "What a service needs to read flags: the evaluation API's OpenAPI document (written by `just gen-client`, never edit it by hand) and `createFlagReader`, a dependency-free poller for it.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vitest": "5.0.4"
+  }
+}

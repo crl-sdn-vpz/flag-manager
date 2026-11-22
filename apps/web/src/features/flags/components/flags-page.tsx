@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { SeePreviewButton } from "@/features/preview";
 import { CreateFlagForm } from "./create-flag-form";
 import { FlagList } from "./flag-list";
 
@@ -16,9 +17,12 @@ export function FlagsPage() {
     <div className="space-y-8">
       <CreateFlagForm announce={announce} />
       <section aria-labelledby="flags-heading" className="space-y-4">
-        <h2 id="flags-heading" className="text-lg font-semibold">
-          Flags
-        </h2>
+        <div className="flex flex-wrap items-center gap-x-4">
+          <h2 id="flags-heading" className="text-lg font-semibold">
+            Flags
+          </h2>
+          <SeePreviewButton />
+        </div>
         <FlagList announce={announce} />
       </section>
       <div role="status" aria-live="polite" className="sr-only">

@@ -2,6 +2,7 @@ import type { Flag } from "api-client";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { regionForKey, usePreviewSource } from "@/features/preview";
 import { useSetFlagEnabled } from "../api";
 
 const updatedFormat = new Intl.DateTimeFormat(undefined, {
@@ -24,13 +25,23 @@ type FlagRowProps = { flag: Flag; announce: (message: string) => void };
 
 export function FlagRow({ flag, announce }: FlagRowProps) {
   const toggle = useSetFlagEnabled();
+  const preview = usePreviewSource();
+  const region = regionForKey(flag.key);
   const switchRef = useRef<HTMLButtonElement>(null);
 
   const setEnabled = (enabled: boolean) =>
     toggle.mutate(
       { path: { key: flag.key }, body: { enabled } },
       {
-        onSuccess: () => announce(`${flag.name} turned ${stateWord(enabled)}.`),
+        onSuccess: () => {
+          const own = `${flag.name} turned ${stateWord(enabled)}.`;
+          if (!preview || !region) return announce(own);
+          // The reviewer's own flip: the preview reads now, and its sentence is said with the
+          // switch's own once it shows the new state. A poll is never announced.
+          void preview
+            .afterOwnFlip(flag.key, enabled)
+            .then((sentence) => announce(sentence ? `${own} ${sentence}` : own));
+        },
         onError: () => announce(`Couldn't turn ${stateWord(enabled)} ${flag.name}.`),
       },
     );
@@ -49,6 +60,7 @@ export function FlagRow({ flag, announce }: FlagRowProps) {
         <p className="text-xs text-fg-muted">
           Updated{" "}
           <time dateTime={flag.updatedAt}>{updatedFormat.format(new Date(flag.updatedAt))}</time>
+          {region && ` · read by the preview: ${region.id}`}
         </p>
         {failedEnabled !== undefined && (
           <div className="flex items-center gap-3 text-sm text-danger">
