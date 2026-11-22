@@ -27,10 +27,13 @@ dev-web:
 check: fmt-check lint typecheck test check-client check-flags-sdk
 
 # All unit and integration tests
-test: test-api test-web
+test: test-api test-flags-sdk test-web
 
 test-api *args:
     pnpm --filter api test {{ args }}
+
+test-flags-sdk *args:
+    pnpm --filter flags-sdk test {{ args }}
 
 test-web *args:
     pnpm --filter web test {{ args }}

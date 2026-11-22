@@ -130,6 +130,7 @@ const tasks: Record<string, () => void> = {
   test() {
     loadEnv();
     run("pnpm", ["--filter", "api", "test"]);
+    run("pnpm", ["--filter", "flags-sdk", "test"]);
     run("pnpm", ["--filter", "web", "test"]);
   },
   check() {
@@ -138,6 +139,7 @@ const tasks: Record<string, () => void> = {
     run("pnpm", ["exec", "biome", "check", "--formatter-enabled=false", "."]);
     run("pnpm", ["-r", "--if-present", "run", "typecheck"]);
     run("pnpm", ["--filter", "api", "test"]);
+    run("pnpm", ["--filter", "flags-sdk", "test"]);
     run("pnpm", ["--filter", "web", "test"]);
     checkClient();
     checkFlagsSdk();
