@@ -505,6 +505,28 @@ describe("stop", () => {
   });
 });
 
+describe("what every read sends", () => {
+  it("follows no redirect, sends no credentials and bypasses the HTTP cache", async () => {
+    const { reader, server } = setup();
+    server.answer(snapshotResponse(AAAA, {}));
+    server.answer(new Response(null, { status: 304 }));
+    reader.start();
+    await tick(0);
+    await tick(5000);
+
+    expect(server.calls).toHaveLength(2);
+    for (const call of server.calls) {
+      expect(call.init).toMatchObject({
+        method: "GET",
+        redirect: "error",
+        credentials: "omit",
+        cache: "no-store",
+      });
+    }
+    reader.stop();
+  });
+});
+
 describe("a read that gets no answer", () => {
   it("is aborted after 10 seconds and counted as a failure, then the poll recovers", async () => {
     const { reader, server, reads } = setup();

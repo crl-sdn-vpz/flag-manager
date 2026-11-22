@@ -138,7 +138,17 @@ export function createFlagReader(options: FlagReaderOptions): FlagReader {
   async function read(signal: AbortSignal): Promise<ReadOutcome> {
     const headers: Record<string, string> = { accept: "application/json" };
     if (current) headers["if-none-match"] = `"${current.version}"`;
-    const response = await doFetch(path, { method: "GET", headers, signal });
+    // The reader's own guarantees, whatever fetch it is given: no redirect is followed, no cookie
+    // or credential is sent, and the browser's HTTP cache is not used (the reader revalidates
+    // with its own If-None-Match).
+    const response = await doFetch(path, {
+      method: "GET",
+      headers,
+      signal,
+      redirect: "error",
+      credentials: "omit",
+      cache: "no-store",
+    });
     if (signal.aborted) return { ok: false };
     if (response.status === 304) return { ok: current !== null };
     if (!response.ok) return { ok: false, retryAfterMs: retryAfterMs(response) };
