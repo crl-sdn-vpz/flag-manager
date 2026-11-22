@@ -2,13 +2,13 @@
  * A reader for the evaluation route (`GET /eval/v1/flags`, see ./../openapi.json).
  *
  * No dependencies and no framework: it takes any `fetch`-shaped function, so a browser's
- * `window.fetch`, a host's proxied `ctx.api` or a test double all work. It polls, keeps the last
+ * `window.fetch`, a fetch supplied by a host app or a test double all work. It polls, keeps the last
  * good snapshot, and answers `get(key)` with a default until the first answer arrives.
  */
 
 export type FlagSnapshot = { version: string; flags: Readonly<Record<string, boolean>> };
 
-/** The shape of `window.fetch` and of a playground host's `ctx.api`. */
+/** The shape of `window.fetch` and of any fetch a host app supplies. */
 export type FlagFetch = (path: string, init: RequestInit) => Promise<Response>;
 
 export type FlagReader = {
