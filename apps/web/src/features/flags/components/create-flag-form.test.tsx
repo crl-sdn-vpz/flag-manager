@@ -61,7 +61,7 @@ describe("CreateFlagForm", () => {
     expect(screen.getByRole("switch", { name: "Beta search" })).toHaveFocus();
   });
 
-  it("returns focus to an empty Key after a create without a hint, so the next click works first time", async () => {
+  it("returns focus to an empty Key without a hint", async () => {
     server.use(createdFlagHandler());
     const user = userEvent.setup();
     renderPage();
@@ -139,6 +139,66 @@ describe("CreateFlagForm", () => {
     expect(await screen.findByText("Name is reserved")).toBeInTheDocument();
     expect(name).toHaveAttribute("aria-invalid", "true");
     expect(name).toHaveFocus();
+  });
+
+  it("keeps a key conflict from the server when the field loses focus", async () => {
+    server.use(
+      http.post("*/api/v1/flags", () =>
+        HttpResponse.json<ErrorResponse>(
+          {
+            code: "flag_key_conflict",
+            message: "A flag with this key already exists",
+            details: {},
+            requestId: "r1",
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("switch", { name: "Dark mode" });
+
+    await createBetaSearch(user);
+    const key = screen.getByLabelText("Key");
+    expect(await screen.findByText("This key already exists")).toBeInTheDocument();
+    expect(key).toHaveFocus();
+
+    await user.tab();
+
+    expect(key).not.toHaveFocus();
+    expect(screen.getByText("This key already exists")).toBeInTheDocument();
+    expect(key).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("keeps a server validation error when its field loses focus", async () => {
+    server.use(
+      http.post("*/api/v1/flags", () =>
+        HttpResponse.json<ErrorResponse>(
+          {
+            code: "validation_error",
+            message: "Request validation failed",
+            details: { issues: [{ path: ["name"], message: "Name is reserved" }] },
+            requestId: "r1",
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("switch", { name: "Dark mode" });
+
+    await createBetaSearch(user);
+    const name = screen.getByLabelText("Name");
+    expect(await screen.findByText("Name is reserved")).toBeInTheDocument();
+    expect(name).toHaveFocus();
+
+    await user.tab();
+
+    expect(name).not.toHaveFocus();
+    expect(screen.getByText("Name is reserved")).toBeInTheDocument();
+    expect(name).toHaveAttribute("aria-invalid", "true");
   });
 
   it("reports a failed create once, through the form's alert only", async () => {
