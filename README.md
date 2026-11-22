@@ -102,7 +102,7 @@ The full contract is in `packages/api-client/openapi.json`.
 ## With another day
 
 1. Edit a flag's description from the list.
-2. Give every kind of invalid request the same error format. Two edge cases (broken JSON, missing content type) still answer differently.
+2. Answer broken JSON and a missing content type with 422 `validation_error`, like every other invalid request (today they answer 400/415 `http_error`).
 3. Make the test output quieter, so a real failure is easier to spot.
 4. Briefly highlight a newly created flag in the list.
 5. Clear a row's error message when the change did reach the server but its answer was lost.
