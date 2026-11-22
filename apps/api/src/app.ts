@@ -1,4 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { type RequestIdVariables, requestId } from "hono/request-id";
 import { env } from "./core/env.ts";
@@ -6,6 +7,7 @@ import { errorBody, toErrorResponse, toLoggableError } from "./core/errors.ts";
 import { logger } from "./core/logger.ts";
 import { requestLog } from "./core/request-log.ts";
 import type { Db } from "./db/client.ts";
+import { createEvalRoutes } from "./routes/eval.ts";
 import { registerFlagRoutes } from "./routes/flags.ts";
 import { registerHealthRoutes } from "./routes/health.ts";
 
@@ -45,6 +47,10 @@ export function createApp(deps: AppDeps) {
   registerHealthRoutes(v1);
   registerFlagRoutes(v1);
   app.route("/api/v1", v1);
+
+  // The read path has its own OpenAPI document (see openapi.ts). OpenAPIHono.route would copy
+  // its routes into this app's document, so it goes through a plain Hono router that does not.
+  app.route("/", new Hono<AppEnv>().route("/", createEvalRoutes()));
 
   app.notFound((c) => c.json(errorBody("not_found", "Route not found", c.get("requestId")), 404));
   app.onError((error, c) => {
