@@ -61,6 +61,40 @@ describe("CreateFlagForm", () => {
     expect(screen.getByRole("switch", { name: "Beta search" })).toHaveFocus();
   });
 
+  it("returns focus to an empty Key without a hint", async () => {
+    server.use(createdFlagHandler());
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("switch", { name: "Dark mode" });
+
+    await createBetaSearch(user);
+    await within(screen.getByRole("form", { name: "New flag" })).findByText(
+      /created\. It is off\./,
+    );
+    const key = screen.getByLabelText("Key");
+    expect(key).toHaveFocus();
+
+    // The press that moves focus away is also the click, on the first try.
+    await user.click(screen.getByRole("button", { name: "Show flag" }));
+
+    expect(screen.getByRole("switch", { name: "Beta search" })).toHaveFocus();
+    expect(screen.queryByText("Use at least 2 characters")).toBeNull();
+    expect(key).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("still validates a field with text when it loses focus, and clears the hint once it is right", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("switch", { name: "Dark mode" });
+
+    await user.type(screen.getByLabelText("Key"), "x");
+    await user.tab();
+    expect(await screen.findByText("Use at least 2 characters")).toBeVisible();
+
+    await user.type(screen.getByLabelText("Key"), "y");
+    await waitFor(() => expect(screen.queryByText("Use at least 2 characters")).toBeNull());
+  });
+
   it("keeps the new flag when an older list fetch finishes after the create", async () => {
     const user = userEvent.setup();
     const queryClient = renderPage();
@@ -105,6 +139,66 @@ describe("CreateFlagForm", () => {
     expect(await screen.findByText("Name is reserved")).toBeInTheDocument();
     expect(name).toHaveAttribute("aria-invalid", "true");
     expect(name).toHaveFocus();
+  });
+
+  it("keeps a key conflict from the server when the field loses focus", async () => {
+    server.use(
+      http.post("*/api/v1/flags", () =>
+        HttpResponse.json<ErrorResponse>(
+          {
+            code: "flag_key_conflict",
+            message: "A flag with this key already exists",
+            details: {},
+            requestId: "r1",
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("switch", { name: "Dark mode" });
+
+    await createBetaSearch(user);
+    const key = screen.getByLabelText("Key");
+    expect(await screen.findByText("This key already exists")).toBeInTheDocument();
+    expect(key).toHaveFocus();
+
+    await user.tab();
+
+    expect(key).not.toHaveFocus();
+    expect(screen.getByText("This key already exists")).toBeInTheDocument();
+    expect(key).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("keeps a server validation error when its field loses focus", async () => {
+    server.use(
+      http.post("*/api/v1/flags", () =>
+        HttpResponse.json<ErrorResponse>(
+          {
+            code: "validation_error",
+            message: "Request validation failed",
+            details: { issues: [{ path: ["name"], message: "Name is reserved" }] },
+            requestId: "r1",
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("switch", { name: "Dark mode" });
+
+    await createBetaSearch(user);
+    const name = screen.getByLabelText("Name");
+    expect(await screen.findByText("Name is reserved")).toBeInTheDocument();
+    expect(name).toHaveFocus();
+
+    await user.tab();
+
+    expect(name).not.toHaveFocus();
+    expect(screen.getByText("Name is reserved")).toBeInTheDocument();
+    expect(name).toHaveAttribute("aria-invalid", "true");
   });
 
   it("reports a failed create once, through the form's alert only", async () => {

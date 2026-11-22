@@ -15,6 +15,12 @@ const errorResponse = (description: string) => ({
   content: { "application/json": { schema: ErrorResponseSchema } },
 });
 
+// Answered before validation, by the JSON body parser, for every route that takes a body.
+const bodyErrorResponses = {
+  400: errorResponse("The request body is not valid JSON (code http_error)"),
+  415: errorResponse("The request's Content-Type is not application/json (code http_error)"),
+};
+
 const listFlagsRoute = createRoute({
   method: "get",
   path: "/flags",
@@ -42,6 +48,7 @@ const createFlagRoute = createRoute({
       description: "The created flag (always disabled)",
       content: { "application/json": { schema: FlagSchema } },
     },
+    ...bodyErrorResponses,
     409: errorResponse("A flag with this key already exists (code flag_key_conflict)"),
     422: errorResponse("Request validation failed (code validation_error)"),
     500: errorResponse("Unexpected error"),
@@ -65,6 +72,7 @@ const setFlagEnabledRoute = createRoute({
       description: "The flag in its requested state. Idempotent: repeating gives the same result.",
       content: { "application/json": { schema: FlagSchema } },
     },
+    ...bodyErrorResponses,
     404: errorResponse("No flag with this key (code flag_not_found)"),
     422: errorResponse("Request validation failed (code validation_error)"),
     500: errorResponse("Unexpected error"),

@@ -160,3 +160,43 @@ describe("PATCH /api/v1/flags/:key", () => {
     );
   });
 });
+
+describe("request bodies that are not JSON", () => {
+  const routes = [
+    ["POST", "/api/v1/flags"],
+    ["PATCH", "/api/v1/flags/dark-mode"],
+  ] as const;
+
+  it.each(routes)("%s %s answers 400 for malformed JSON", async (method, path) => {
+    const response = await app.request(path, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: "{",
+    });
+
+    await expectError(response, 400, "http_error");
+  });
+
+  it.each(routes)("%s %s answers 415 without a JSON content type", async (method, path) => {
+    const response = await app.request(path, { method, body: "{}" });
+
+    await expectError(response, 415, "http_error");
+  });
+
+  it("are listed in the OpenAPI document, with the error schema", () => {
+    const document = app.getOpenAPI31Document({
+      openapi: "3.1.0",
+      info: { title: "API", version: "0.1.0" },
+    });
+    const errorResponse = {
+      content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+    };
+
+    for (const operation of [
+      document.paths?.["/api/v1/flags"]?.post,
+      document.paths?.["/api/v1/flags/{key}"]?.patch,
+    ]) {
+      expect(operation?.responses).toMatchObject({ 400: errorResponse, 415: errorResponse });
+    }
+  });
+});
