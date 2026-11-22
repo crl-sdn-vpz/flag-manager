@@ -9,6 +9,7 @@
       "!.mcp.json",
       "!**/packages/api-client/src/generated",
       "!**/packages/api-client/openapi.json",
+      "!**/packages/flags-sdk/openapi.json",
       "!apps/api/drizzle/meta"
     ]
   },

@@ -36,8 +36,11 @@ function loadEnv(): void {
   if (existsSync(".env")) process.loadEnvFile(".env");
 }
 
-function openApiDocument(): string {
-  const result = spawnSync(process.execPath, ["apps/api/src/openapi.ts"], { encoding: "utf8" });
+// The admin API's document (packages/api-client) or the evaluation API's (packages/flags-sdk).
+function openApiDocument(name: "admin" | "eval" = "admin"): string {
+  const result = spawnSync(process.execPath, ["apps/api/src/openapi.ts", name], {
+    encoding: "utf8",
+  });
   if (result.status !== 0) {
     console.error(result.stderr);
     process.exit(result.status ?? 1);
@@ -48,6 +51,7 @@ function openApiDocument(): string {
 function genClient(): void {
   writeFileSync("packages/api-client/openapi.json", openApiDocument());
   run("pnpm", ["--filter", "api-client", "generate"]);
+  writeFileSync("packages/flags-sdk/openapi.json", openApiDocument("eval"));
 }
 
 function dbMigrate(): void {
@@ -99,6 +103,17 @@ function checkClient(): void {
   }
 }
 
+// Fail if packages/flags-sdk/openapi.json is stale (the evaluation route or its schema changed).
+function checkFlagsSdk(): void {
+  if (readFileSync("packages/flags-sdk/openapi.json", "utf8") !== openApiDocument("eval")) {
+    console.error(
+      "packages/flags-sdk/openapi.json is stale: run 'pnpm gen-client' and commit the result.",
+    );
+    process.exit(1);
+  }
+  console.log("flags-sdk is up to date");
+}
+
 const tasks: Record<string, () => void> = {
   bootstrap() {
     if (!existsSync(".env")) copyFileSync(".env.example", ".env");
@@ -125,6 +140,7 @@ const tasks: Record<string, () => void> = {
     run("pnpm", ["--filter", "api", "test"]);
     run("pnpm", ["--filter", "web", "test"]);
     checkClient();
+    checkFlagsSdk();
   },
   "gen-client": () => {
     loadEnv();

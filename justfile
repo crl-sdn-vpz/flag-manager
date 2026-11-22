@@ -24,7 +24,7 @@ dev-web:
     pnpm --filter web dev
 
 # Everything CI runs. Run before saying "done".
-check: fmt-check lint typecheck test check-client
+check: fmt-check lint typecheck test check-client check-flags-sdk
 
 # All unit and integration tests
 test: test-api test-web
@@ -47,10 +47,11 @@ fmt-check:
 typecheck:
     pnpm -r --if-present run typecheck
 
-# Regenerate packages/api-client from the API's OpenAPI document (no server needed)
+# Regenerate packages/api-client and packages/flags-sdk/openapi.json from the API (no server needed)
 gen-client:
     just _openapi > packages/api-client/openapi.json
     pnpm --filter api-client generate
+    just _openapi eval > packages/flags-sdk/openapi.json
 
 # Fail if packages/api-client is stale (route or schema changed without gen-client)
 check-client:
@@ -66,8 +67,19 @@ check-client:
     fi
     echo "api-client is up to date"
 
-_openapi:
-    @cd apps/api && node src/openapi.ts
+# Fail if packages/flags-sdk/openapi.json is stale (the evaluation route or its schema changed)
+check-flags-sdk:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! just _openapi eval | diff -q packages/flags-sdk/openapi.json - >/dev/null; then
+      echo "packages/flags-sdk/openapi.json is stale: run 'just gen-client' and commit the result." >&2
+      exit 1
+    fi
+    echo "flags-sdk is up to date"
+
+# The OpenAPI document of the admin API, or of the evaluation API with `eval`
+_openapi document="admin":
+    @cd apps/api && node src/openapi.ts {{ document }}
 
 # New Drizzle migration from schema changes (read the SQL before committing)
 db-revision message:

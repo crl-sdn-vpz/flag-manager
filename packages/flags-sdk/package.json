@@ -1,0 +1,6 @@
+{
+  "name": "flags-sdk",
+  "private": true,
+  "type": "module",
+  "description": "What a service needs to read flags: the evaluation API's OpenAPI document, written by `just gen-client`. Never edit it by hand."
+}

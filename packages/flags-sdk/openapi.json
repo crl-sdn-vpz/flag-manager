@@ -1,0 +1,152 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Flag evaluation API",
+    "version": "0.1.0",
+    "description": "Read-only. What a service calls to learn which flags are on; the admin API is a separate document."
+  },
+  "components": {
+    "schemas": {
+      "FlagSnapshot": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "description": "Identifies this exact set of states. Changes when a flag is created or toggled, and only then. Also the response's ETag.",
+            "example": "9f2c4a7e10b35d68"
+          },
+          "flags": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "description": "Every flag's state, by key",
+            "example": {
+              "new-checkout": true,
+              "beta-search": false
+            }
+          }
+        },
+        "required": [
+          "version",
+          "flags"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "requestId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details",
+          "requestId"
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/eval/v1/flags": {
+      "get": {
+        "operationId": "evaluate_flags",
+        "tags": [
+          "evaluation"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The ETag of the snapshot the caller already has. A match answers 304.",
+              "example": "\"9f2c4a7e10b35d68\""
+            },
+            "required": false,
+            "description": "The ETag of the snapshot the caller already has. A match answers 304.",
+            "name": "if-none-match",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The state of every flag",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string",
+                  "description": "The snapshot's version in quotes. Send it back as If-None-Match.",
+                  "example": "\"9f2c4a7e10b35d68\""
+                },
+                "required": true,
+                "description": "The snapshot's version in quotes. Send it back as If-None-Match."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "description": "no-cache: a cache may keep the answer but must revalidate it before using it.",
+                  "example": "no-cache"
+                },
+                "required": true,
+                "description": "no-cache: a cache may keep the answer but must revalidate it before using it."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagSnapshot"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The caller's snapshot is current (If-None-Match matched). No body.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string",
+                  "description": "The snapshot's version in quotes. Send it back as If-None-Match.",
+                  "example": "\"9f2c4a7e10b35d68\""
+                },
+                "required": true,
+                "description": "The snapshot's version in quotes. Send it back as If-None-Match."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "description": "no-cache: a cache may keep the answer but must revalidate it before using it.",
+                  "example": "no-cache"
+                },
+                "required": true,
+                "description": "no-cache: a cache may keep the answer but must revalidate it before using it."
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}
