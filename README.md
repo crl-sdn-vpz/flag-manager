@@ -8,7 +8,7 @@ On one page you can see every flag, turn it on or off, and create new ones. I bu
 
 ## How to run
 
-You need **Node 24** and **pnpm**. Running `corepack enable` gives you the right pnpm version.
+You need **Node 24** (the version is in `.nvmrc`, and pnpm refuses to install with another one) and **pnpm**. Running `corepack enable` gives you the right pnpm version.
 
 ```bash
 pnpm bootstrap   # one-time setup: installs everything and prepares the database
@@ -69,7 +69,7 @@ The rules:
 - **`name`** is required, up to 80 characters. **`description`** is optional, up to 280.
 - Fields the API doesn't know are rejected, not ignored.
 
-When something goes wrong, every error has the same shape: a `code` (for example `validation_error`, `flag_key_conflict` or `flag_not_found`), a readable `message`, some `details`, and a `requestId`. That ID also appears in the server logs, so a reported error can be traced to what happened.
+When something goes wrong, every error has the same shape: a `code` (for example `validation_error`, `flag_key_conflict`, `flag_not_found`, or `http_error` when the request body is not JSON), a readable `message`, some `details`, and a `requestId`. That ID also appears in the server logs, so a reported error can be traced to what happened.
 
 The full contract is in `packages/api-client/openapi.json`.
 
