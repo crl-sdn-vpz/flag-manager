@@ -49,20 +49,13 @@ export function createPreviewSource(fetchFlags: FlagFetch): PreviewSource {
     for (const listener of [...listeners]) listener();
   };
 
-  // The reader keeps its own error counting private; what the pane says about a failed read is
-  // taken from the answers that pass through here.
-  const observedFetch: FlagFetch = async (path, init) => {
-    try {
-      const response = await fetchFlags(path, init);
-      if (!init.signal?.aborted) update({ failed: !(response.ok || response.status === 304) });
-      return response;
-    } catch (error) {
-      if (!init.signal?.aborted) update({ failed: true });
-      throw error;
-    }
-  };
-
-  const reader: FlagReader = createFlagReader({ fetch: observedFetch, defaults: PREVIEW_FLAGS });
+  // What the pane says about a failed read comes from the reader, which has parsed the body: a
+  // 200 that is not a snapshot (an SPA fallback page) is a failure too.
+  const reader: FlagReader = createFlagReader({
+    fetch: fetchFlags,
+    defaults: PREVIEW_FLAGS,
+    onRead: (ok) => update({ failed: !ok }),
+  });
 
   reader.subscribe(() => {
     const before = state.snapshot;

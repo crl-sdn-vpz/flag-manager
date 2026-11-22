@@ -8,6 +8,9 @@ import { createQueryClient } from "@/app/query-client";
 import { HomePage } from "@/app/routes/home-page";
 import { server } from "../../../tests/msw/server";
 
+/** The evaluation document's version: 16 lower-case hex characters. */
+const versionOf = (n: number) => n.toString(16).padStart(16, "0");
+
 const SAMPLE_KEYS = ["beta-search", "ai-summaries", "new-checkout", "dark-mode", "legacy-export"];
 
 /** A tiny in-memory backend: the admin list, the toggle and the evaluation route over one state. */
@@ -16,7 +19,7 @@ function useBackend(initial: Record<string, boolean> = {}) {
   Object.assign(enabled, initial);
   let version = 1;
   const evalRequests: Array<string | null> = [];
-  const state = { evalMode: "ok" as "ok" | "fail" };
+  const state = { evalMode: "ok" as "ok" | "fail" | "html" };
 
   const flag = (key: string): Flag => ({
     key,
@@ -41,10 +44,12 @@ function useBackend(initial: Record<string, boolean> = {}) {
       const sent = request.headers.get("if-none-match");
       evalRequests.push(sent);
       if (state.evalMode === "fail") return HttpResponse.error();
-      const etag = `"v${version}"`;
+      // An SPA fallback: 200, but not a snapshot.
+      if (state.evalMode === "html") return HttpResponse.html("<!doctype html><title>app</title>");
+      const etag = `"${versionOf(version)}"`;
       if (sent === etag) return new HttpResponse(null, { status: 304, headers: { ETag: etag } });
       return HttpResponse.json(
-        { version: `v${version}`, flags: { ...enabled } },
+        { version: versionOf(version), flags: { ...enabled } },
         { headers: { ETag: etag } },
       );
     }),
@@ -158,6 +163,42 @@ describe("the preview before and after the first answer", () => {
     expect(items).toContain("colour schemelight · dark");
   });
 
+  it("says so when the first answer is a 200 that is not a snapshot", async () => {
+    const backend = useBackend({ "new-checkout": true });
+    backend.state.evalMode = "html";
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(
+      await within(pane()).findByText("Couldn't read the flags. Showing the shop as it was."),
+    ).toBeInTheDocument();
+    expect(within(pane()).queryByRole("status")).toBeNull();
+    expect(region(/^checkout three steps$/)).toBeInTheDocument();
+
+    backend.state.evalMode = "ok";
+    await user.click(within(pane()).getByRole("button", { name: "retry" }));
+    expect(
+      await within(pane()).findByRole("heading", { name: /^checkout one page$/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the last drawing and says it may be out of date when a later 200 is not a snapshot", async () => {
+    const backend = useBackend();
+    const user = userEvent.setup();
+    renderPage();
+    await within(pane()).findByText("It only reads: nothing in it can be pressed.");
+    backend.state.evalMode = "html";
+
+    await user.click(await screen.findByRole("switch", { name: "beta-search" }));
+
+    expect(
+      await within(pane()).findByText("Couldn't refresh the preview. It may be out of date."),
+    ).toBeInTheDocument();
+    expect(region(/^search ranked by name$/)).toBeInTheDocument();
+    await waitFor(() => expect(liveRegion()).toHaveTextContent("beta-search turned on."));
+    expect(liveRegion()).not.toHaveTextContent("Preview:");
+  });
+
   it("says so when the first read fails, and retry reads again", async () => {
     const backend = useBackend({ "new-checkout": true });
     backend.state.evalMode = "fail";
@@ -198,7 +239,7 @@ describe("after the reviewer's own flip", () => {
       ),
     );
     // Read once after the flip, with the version it already held.
-    expect(backend.evalRequests).toEqual([null, '"v1"']);
+    expect(backend.evalRequests).toEqual([null, `"${versionOf(1)}"`]);
   });
 
   it("moves the mark when another flag flips, and says the other way too", async () => {
