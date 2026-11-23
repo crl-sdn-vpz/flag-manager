@@ -4,7 +4,7 @@ A small tool for managing feature flags: the on/off switches a team uses to rele
 
 On one page you can see every flag, turn it on or off, and create new ones. I built it as a first version that a team could keep extending.
 
-![The flag manager page: the "New flag" form above the list of flags, each with an On/Off switch](docs/screenshot.png)
+![The flag manager page: the "New flag" form above the list of flags, each with an On/Off switch, and beside them a pretend shop that reads the same flags](docs/screenshot.png)
 
 ## How to run
 
