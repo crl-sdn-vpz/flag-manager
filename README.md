@@ -4,7 +4,7 @@ A small tool for managing feature flags: the on/off switches a team uses to rele
 
 On one page you can see every flag, turn it on or off, and create new ones. I built it as a first version that a team could keep extending.
 
-![The flag manager page: the "New flag" form above the list of flags, each with an On/Off switch](docs/screenshot.png)
+![The flag manager page: the "New flag" form above the list of flags, each with an On/Off switch, and beside them a pretend shop that reads the same flags](docs/screenshot.png)
 
 ## How to run
 
@@ -106,6 +106,7 @@ The full contract is in `packages/api-client/openapi.json`.
 3. Make the test output quieter, so a real failure is easier to spot.
 4. Briefly highlight a newly created flag in the list.
 5. Clear a row's error message when the change did reach the server but its answer was lost.
+6. Show a failed change's error straight away. Today the row waits for the list to be read again first, which takes a second or two when the network is down.
 
 ## How it could grow
 
