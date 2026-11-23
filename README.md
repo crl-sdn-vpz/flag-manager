@@ -106,6 +106,7 @@ The full contract is in `packages/api-client/openapi.json`.
 3. Make the test output quieter, so a real failure is easier to spot.
 4. Briefly highlight a newly created flag in the list.
 5. Clear a row's error message when the change did reach the server but its answer was lost.
+6. Show a failed change's error straight away. Today the row waits for the list to be read again first, which takes a second or two when the network is down.
 
 ## How it could grow
 
